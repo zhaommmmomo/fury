@@ -74,6 +74,7 @@
     <module>fury-core</module>
     <module>fury-test-core</module>
     <module>fury-testsuite</module>
+    <module>fury-benchmark</module>
   </modules>
 
   <properties>
