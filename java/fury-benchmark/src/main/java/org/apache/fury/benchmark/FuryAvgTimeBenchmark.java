@@ -53,7 +53,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 @State(value = Scope.Benchmark)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @CompilerControl(value = CompilerControl.Mode.INLINE)
-public class FuryBenchmark extends BaseFuryBenchmark{
+public class FuryAvgTimeBenchmark extends BaseFuryBenchmark{
 
   @Param({"10000"})
   private int iterate;
@@ -174,7 +174,7 @@ public class FuryBenchmark extends BaseFuryBenchmark{
 
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-        .include(FuryBenchmark.class.getSimpleName())
+        .include(FuryAvgTimeBenchmark.class.getSimpleName())
         .result("FuryBenchmark_avg_time_jdk8.json")
         .resultFormat(ResultFormatType.JSON).build();
     new Runner(opt).run();
