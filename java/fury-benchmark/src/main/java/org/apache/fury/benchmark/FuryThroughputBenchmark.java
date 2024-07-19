@@ -20,10 +20,10 @@
 package org.apache.fury.benchmark;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import org.apache.fury.test.bean.BeanA;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -67,7 +67,7 @@ public class FuryThroughputBenchmark extends BaseFuryBenchmark{
     super.setUp();
     intArr = new int[size];
     list = new ArrayList<>(size);
-    map = new ConcurrentHashMap<>();
+    map = new HashMap<>();
     for (int i = 0; i < size; i++) {
       intArr[i] = i;
       list.add(i);
@@ -114,17 +114,17 @@ public class FuryThroughputBenchmark extends BaseFuryBenchmark{
   }
 
   @Benchmark
-  public Object furyCopyConcurrentHashMap() {
+  public Object furyCopyHashMap() {
     return fury.copy(map);
   }
 
   @Benchmark
-  public Object furyWithCodegenCopyConcurrentHashMap() {
+  public Object furyWithCodegenCopyHashMap() {
     return furyWithCodegen.copy(map);
   }
 
   @Benchmark
-  public Object kyroCopyConcurrentHashMap() {
+  public Object kyroCopyHashMap() {
     return kryo.copy(map);
   }
 
