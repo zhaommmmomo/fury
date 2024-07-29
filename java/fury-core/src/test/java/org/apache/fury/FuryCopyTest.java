@@ -19,6 +19,9 @@
 
 package org.apache.fury;
 
+import static org.apache.fury.serializer.collection.MapSerializersTest.createMapFieldsObject;
+import static org.testng.Assert.assertEquals;
+
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -77,16 +80,20 @@ import org.apache.fury.collection.LazyMap;
 import org.apache.fury.serializer.EnumSerializerTest;
 import org.apache.fury.serializer.EnumSerializerTest.EnumFoo;
 import org.apache.fury.serializer.collection.ChildContainerSerializersTest.ChildArrayDeque;
+import org.apache.fury.serializer.collection.SynchronizedSerializersTest;
+import org.apache.fury.serializer.collection.UnmodifiableSerializersTest;
 import org.apache.fury.test.bean.BeanA;
 import org.apache.fury.test.bean.BeanB;
+import org.apache.fury.test.bean.CollectionFields;
 import org.apache.fury.test.bean.Cyclic;
+import org.apache.fury.test.bean.MapFields;
 import org.apache.fury.util.DateTimeUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class FuryCopyTest extends FuryTestBase {
 
-  private final Fury fury = builder().withCopyRefTracking(true).withCodegen(false).build();
+  private final Fury fury = builder().withRefCopy(true).withCodegen(false).build();
 
   @Test
   public void immutableObjectCopyTest() {
@@ -131,7 +138,7 @@ public class FuryCopyTest extends FuryTestBase {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     AtomicReference<Throwable> ex = new AtomicReference<>();
     ThreadLocalFury threadLocalFury =
-        builder().withCodegen(false).withCopyRefTracking(true).buildThreadLocalFury();
+        builder().withCodegen(false).withRefCopy(true).buildThreadLocalFury();
     threadLocalFury.register(BeanA.class);
     assetEqualsButNotSame(threadLocalFury.copy(beanA));
     executor.execute(
@@ -151,7 +158,7 @@ public class FuryCopyTest extends FuryTestBase {
     AtomicBoolean flag = new AtomicBoolean(false);
     ThreadSafeFury threadSafeFury =
         builder()
-            .withCopyRefTracking(true)
+            .withRefCopy(true)
             .withCodegen(false)
             .withAsyncCompilation(true)
             .buildThreadSafeFuryPool(5, 10);
@@ -342,6 +349,39 @@ public class FuryCopyTest extends FuryTestBase {
     @Override
     public String toString() {
       return "B{" + "name='" + name + '\'' + ", list=" + list + '}';
+    }
+  }
+
+  @Test
+  public void testCircularRefCopy() {
+    Cyclic cyclic = Cyclic.create(true);
+    Fury fury = builder().withRefTracking(true).withRefCopy(true).build();
+    assertEquals(fury.copy(cyclic), cyclic);
+  }
+
+  @Test
+  public void testComplexMapCopy() {
+    Fury fury = builder().withRefTracking(true).withRefCopy(true).build();
+    {
+      MapFields mapFields = UnmodifiableSerializersTest.createMapFields();
+      assertEquals(fury.copy(mapFields), mapFields);
+    }
+    {
+      MapFields obj = createMapFieldsObject();
+      assertEquals(fury.copy(obj), obj);
+    }
+  }
+
+  @Test
+  public void testComplexCollectionCopy() {
+    Fury fury = builder().withRefTracking(true).withRefCopy(true).build();
+    {
+      CollectionFields collectionFields = SynchronizedSerializersTest.createCollectionFields();
+      assertEquals(fury.copy(collectionFields).toCanEqual(), collectionFields.toCanEqual());
+    }
+    {
+      CollectionFields collectionFields = UnmodifiableSerializersTest.createCollectionFields();
+      assertEquals(fury.copy(collectionFields).toCanEqual(), collectionFields.toCanEqual());
     }
   }
 }
