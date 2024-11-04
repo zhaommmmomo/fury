@@ -27,7 +27,7 @@ import org.apache.fury.memory.Platform;
 
 /** Serializer for {@link URL}. */
 // TODO(chaokunyang) ensure security to avoid dnslog detection.
-public final class URLSerializer extends AbstractObjectSerializer<URL> {
+public final class URLSerializer extends Serializer<URL> {
 
   public URLSerializer(Fury fury, Class<URL> type) {
     super(fury, type);
@@ -40,6 +40,16 @@ public final class URLSerializer extends AbstractObjectSerializer<URL> {
   public URL read(MemoryBuffer buffer) {
     try {
       return new URL(fury.readString(buffer));
+    } catch (MalformedURLException e) {
+      Platform.throwException(e);
+      throw new IllegalStateException("unreachable");
+    }
+  }
+
+  @Override
+  public URL copy(URL originObj) {
+    try {
+      return new URL(originObj.toExternalForm());
     } catch (MalformedURLException e) {
       Platform.throwException(e);
       throw new IllegalStateException("unreachable");
