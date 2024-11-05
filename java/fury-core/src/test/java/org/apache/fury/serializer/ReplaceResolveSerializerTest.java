@@ -243,16 +243,21 @@ public class ReplaceResolveSerializerTest extends FuryTestBase {
       CustomReplaceClass3 o1 = new CustomReplaceClass3();
       o1.ref = o1;
       CustomReplaceClass3 copy = fury.copy(o1);
+      assertNotSame(copy, o1);
       assertSame(copy, copy.ref);
     }
     {
       CustomReplaceClass3 o1 = new CustomReplaceClass3();
       CustomReplaceClass3 o2 = new CustomReplaceClass3();
+      CustomReplaceClass3 o3 = new CustomReplaceClass3();
       o1.ref = o2;
-      o2.ref = o1;
+      o2.ref = o3;
+      o3.ref = o1;
       {
         CustomReplaceClass3 newObj1 = fury.copy(o1);
+        assertNotSame(newObj1, o1);
         assertNotSame(newObj1.ref, o2);
+        assertSame(newObj1, ((CustomReplaceClass3) ((CustomReplaceClass3) newObj1.ref).ref).ref);
       }
     }
   }
@@ -294,6 +299,36 @@ public class ReplaceResolveSerializerTest extends FuryTestBase {
       CustomReplaceClass4 newObj1 = (CustomReplaceClass4) serDe(fury, (Object) o1);
       assertSame(newObj1.ref, newObj1);
       assertSame(((CustomReplaceClass4) newObj1.ref).ref, newObj1);
+    }
+  }
+
+  @Test(dataProvider = "furyCopyConfig")
+  public void testWriteReplaceDifferentClassCircularRef(Fury fury) {
+    fury.registerSerializer(CustomReplaceClass3.class, ReplaceResolveSerializer.class);
+    fury.registerSerializer(CustomReplaceClass4.class, ReplaceResolveSerializer.class);
+    {
+      CustomReplaceClass3 o1 = new CustomReplaceClass3();
+      CustomReplaceClass4 o2 = new CustomReplaceClass4();
+      o1.ref = o2;
+      o2.ref = o1;
+      CustomReplaceClass3 copy = fury.copy(o1);
+      assertNotSame(copy, o1);
+      assertNotSame(copy.ref, o1.ref);
+      assertSame(copy, ((CustomReplaceClass4) copy.ref).ref);
+    }
+    {
+      CustomReplaceClass3 o1 = new CustomReplaceClass3();
+      CustomReplaceClass4 o2 = new CustomReplaceClass4();
+      CustomReplaceClass3 o3 = new CustomReplaceClass3();
+      CustomReplaceClass4 o4 = new CustomReplaceClass4();
+      o1.ref = o2;
+      o2.ref = o3;
+      o3.ref = o4;
+      o4.ref = o1;
+      CustomReplaceClass3 copy = fury.copy(o1);
+      assertNotSame(copy, o1);
+      assertNotSame(copy.ref, o1.ref);
+      assertSame(copy, ((CustomReplaceClass4) ((CustomReplaceClass3) ((CustomReplaceClass4) copy.ref).ref).ref).ref);
     }
   }
 
@@ -408,6 +443,18 @@ public class ReplaceResolveSerializerTest extends FuryTestBase {
         fury.getClassResolver().getSerializer(Subclass2.class) instanceof ReplaceResolveSerializer);
   }
 
+  @Test(dataProvider = "furyCopyConfig")
+  public void testWriteReplaceWithWriteObject(Fury fury) {
+    fury.registerSerializer(CustomReplaceClass2.class, ReplaceResolveSerializer.class);
+    fury.registerSerializer(Subclass2.class, ReplaceResolveSerializer.class);
+    for (Object o :
+        new Object[] {
+            new Subclass2(false, 2, 10), new Subclass2(true, 2, 11),
+        }) {
+      copyCheck(fury, o);
+    }
+  }
+
   public static class CustomReplaceClass5 {
     private Object writeReplace() {
       throw new RuntimeException();
@@ -432,6 +479,14 @@ public class ReplaceResolveSerializerTest extends FuryTestBase {
     fury.registerSerializer(Subclass3.class, ReplaceResolveSerializer.class);
     assertTrue(jdkDeserialize(jdkSerialize(new Subclass3())) instanceof Subclass3);
     assertTrue(serDe(fury, new Subclass3()) instanceof Subclass3);
+  }
+
+  @Test(dataProvider = "furyCopyConfig")
+  public void testUnInheritableReplaceMethod(Fury fury) {
+    fury.registerSerializer(Subclass3.class, ReplaceResolveSerializer.class);
+    Subclass3 subclass3 = new Subclass3();
+    Subclass3 copy = fury.copy(new Subclass3());
+    assertNotSame(subclass3, copy);
   }
 
   public static class CustomReplaceClass6 {
