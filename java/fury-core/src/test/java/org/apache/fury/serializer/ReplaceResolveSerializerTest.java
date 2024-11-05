@@ -328,7 +328,10 @@ public class ReplaceResolveSerializerTest extends FuryTestBase {
       CustomReplaceClass3 copy = fury.copy(o1);
       assertNotSame(copy, o1);
       assertNotSame(copy.ref, o1.ref);
-      assertSame(copy, ((CustomReplaceClass4) ((CustomReplaceClass3) ((CustomReplaceClass4) copy.ref).ref).ref).ref);
+      assertSame(
+          copy,
+          ((CustomReplaceClass4) ((CustomReplaceClass3) ((CustomReplaceClass4) copy.ref).ref).ref)
+              .ref);
     }
   }
 
@@ -449,7 +452,7 @@ public class ReplaceResolveSerializerTest extends FuryTestBase {
     fury.registerSerializer(Subclass2.class, ReplaceResolveSerializer.class);
     for (Object o :
         new Object[] {
-            new Subclass2(false, 2, 10), new Subclass2(true, 2, 11),
+          new Subclass2(false, 2, 10), new Subclass2(true, 2, 11),
         }) {
       copyCheck(fury, o);
     }
