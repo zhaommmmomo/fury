@@ -25,7 +25,9 @@ import java.io.Serializable;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import org.apache.fury.Fury;
 import org.apache.fury.logging.Logger;
@@ -215,6 +217,7 @@ public class ReplaceResolveSerializer extends Serializer {
   private final MethodInfoCache jdkMethodInfoWriteCache;
   private final ClassInfo writeClassInfo;
   private final Map<Class<?>, MethodInfoCache> classClassInfoHolderMap = new HashMap<>();
+  private Set<Object> copyObjectSet;
 
   public ReplaceResolveSerializer(Fury fury, Class type) {
     super(fury, type);
@@ -233,6 +236,9 @@ public class ReplaceResolveSerializer extends Serializer {
     } else {
       jdkMethodInfoWriteCache = null;
       writeClassInfo = null;
+    }
+    if (needToCopyRef) {
+      copyObjectSet = new HashSet<>();
     }
   }
 
@@ -332,15 +338,27 @@ public class ReplaceResolveSerializer extends Serializer {
 
   @Override
   public Object copy(Object originObj) {
-    ReplaceResolveInfo replaceResolveInfo = jdkMethodInfoWriteCache.info;
-    if (replaceResolveInfo.writeReplaceMethod == null) {
+    if (jdkMethodInfoWriteCache.info.writeReplaceMethod == null) {
       return jdkMethodInfoWriteCache.objectSerializer.copy(originObj);
     }
-    Object newObj = originObj;
-    newObj = replaceResolveInfo.writeReplace(newObj);
-    if (needToCopyRef) {
-      fury.reference(originObj, newObj);
+    if (!needToCopyRef) {
+      return copyObject(originObj);
     }
+    if (copyObjectSet.contains(originObj)) {
+      // For originObj that has executed the copy method, just copy the fields,
+      // no need to execute writeReplace / readResolve method
+      return jdkMethodInfoWriteCache.objectSerializer.copy(originObj);
+    }
+    // Marks the originObj that executed the copy method
+    copyObjectSet.add(originObj);
+    Object newObj = copyObject(originObj);
+    copyObjectSet.remove(originObj);
+    return newObj;
+  }
+
+  private Object copyObject(Object originObj) {
+    ReplaceResolveInfo replaceResolveInfo = jdkMethodInfoWriteCache.info;
+    Object newObj = replaceResolveInfo.writeReplace(originObj);
     MethodInfoCache jdkMethodInfoCache = getMethodInfoCache(newObj.getClass());
     newObj = jdkMethodInfoCache.objectSerializer.copy(newObj);
     replaceResolveInfo = jdkMethodInfoCache.info;
